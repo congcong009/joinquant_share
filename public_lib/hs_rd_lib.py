@@ -513,12 +513,12 @@ def get_factor(symbol,
                filter_industry=None
                ):
     """
-    获取因子得分
+    获取横截面的因子数值
 
     Parameters
     ---------
     symbol : str
-        输入A表示全A股票池或者输入指数代码
+        输入 'A' 表示全 A 股票池，或者输入指数代码，如 '000300.XSHG'
     factor : Factor
         不同的fscore模型
     periods : List
