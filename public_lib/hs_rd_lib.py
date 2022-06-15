@@ -110,7 +110,7 @@ def get_pool_period_price(securities,
 
     """
     prices_list = list(get_stock_price(securities, periods))
-    price_df = pd.concat(prices_list)
+    price_df: pd.DataFrame = pd.concat(prices_list)
     return price_df
 
 
@@ -320,7 +320,7 @@ def get_benchmark_return(benchmark='000300.XSHG',
     benchmark_ret : pd.DataFrame
 
     """
-    benchmark = list(get_factor_price(benchmark, period))
+    benchmark = list(get_pool_period_price(benchmark, period))
     benchmark = pd.concat(benchmark)
     benchmark_ret = benchmark['close'].pct_change().shift(-1)
     return benchmark_ret
@@ -353,8 +353,8 @@ def strategy_performance(return_df,
 
     ser['夏普比'] = ep.sharpe_ratio(return_df, risk_free=0, period=periods, annualization=None)
     ser['索提诺'] = ep.sortino_ratio(return_df, required_return=0, period=periods, annualization=None, _downside_risk=None)
-    ser['卡玛比率'] = ep.calmar_ratio(return_df, period=periods, annualization=None)
-    ser['欧米加比率'] = ep.omega_ratio(return_df, risk_free=0.0, required_return=0.0, annualization=252)
+    # ser['卡玛比率'] = ep.calmar_ratio(return_df, period=periods, annualization=None)
+    # ser['欧米加比率'] = ep.omega_ratio(return_df, risk_free=0.0, required_return=0.0, annualization=252)
 
     ser['波动率'] = return_df.apply(lambda x: ep.annual_volatility(x, period=periods))
     # ser['最大回撤'] = return_df.apply(lambda x: ep.max_drawdown(x))
@@ -654,9 +654,9 @@ def get_before_after_trade_days(date,
 
 
 # 数据存储
-def pkl_batch(file,
-              file_name,
-              method
+def pkl_batch(file=None,
+              file_name=None,
+              method='write'
               ):
     """
     将数据保存为 pkl 格式，或者读取
