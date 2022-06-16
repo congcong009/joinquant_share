@@ -726,9 +726,12 @@ def plot_cum_return(title,
     fig, ax = plt.subplots(figsize=(26, 6))
     ax.set_title(title)
     ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, pos: '%.2f%%' % (x * 100)))
-    ep.cum_returns(ret).plot(ax=ax, color=color_map)
     if not benchmark_ret.empty:
-        ep.cum_returns(benchmark_ret.reindex(ret.index)).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
+        # ep.cum_returns(benchmark_ret.reindex(ret.index)).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
+        ep.cum_returns(ret.reindex(benchmark_ret.index)).plot(ax=ax, color=color_map)
+        ep.cum_returns(benchmark_ret).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
+    else:
+        ep.cum_returns(ret).plot(ax=ax, color=color_map)
     ax.axhline(0, color='black', lw=1)
     plt.legend()
 
