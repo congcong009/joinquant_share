@@ -18,7 +18,6 @@ from tqdm import tqdm_notebook
 from jqdata import *
 from jqfactor import calc_factors, Factor, analyze_factor
 from typing import (List, Tuple, Dict, Callable, Union)
-# from kuanke.user_space_api import *
 
 """
 ============================================================================================================================================================
