@@ -63,7 +63,8 @@ def get_stock_ind(securities,
 
 # 获取股价
 def get_stock_price(security,
-                    periods
+                    periods,
+                    fields
                     ):
     """
     获取对应频率的收盘价
@@ -74,6 +75,8 @@ def get_stock_price(security,
         股票代码
     periods: List
         时间区间
+    fields : Str
+        价格类型，如 open, close
 
     Returns
     ------------
@@ -84,14 +87,15 @@ def get_stock_price(security,
         yield get_price(security,
                         end_date=trade,
                         count=1,
-                        fields='close',
+                        fields=fields,
                         fq='post',  # 后复权
                         panel=False)
 
 
 # 获取股票池的区间收盘价数据
 def get_pool_period_price(securities,
-                          periods
+                          periods,
+                          fields
                           ):
     """
     获取股票池的区间收盘价数据
@@ -102,13 +106,15 @@ def get_pool_period_price(securities,
         股票代码
     periods : List
         时间区间
+    fields : Str
+        价格类型，如 open, close
 
     Returns
     -------
      : pd.DataFrame
 
     """
-    prices_list = list(get_stock_price(securities, periods))
+    prices_list = list(get_stock_price(securities, periods, fields))
     price_df: pd.DataFrame = pd.concat(prices_list)
     return price_df
 
