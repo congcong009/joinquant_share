@@ -62,8 +62,9 @@ def get_stock_ind(securities,
 
 
 # 获取股价
-def get_stock_price(security,
+def get_stock_price(symbol,
                     periods,
+                    filter_industry,
                     fields
                     ):
     """
@@ -71,10 +72,12 @@ def get_stock_price(security,
 
     Parameters
     -----------
-    security: List
+    symbol: Str
         股票代码
     periods: List
         时间区间
+    filter_industry :  List
+        过滤行业的代码
     fields : Str
         价格类型，如 open, close
 
@@ -83,8 +86,15 @@ def get_stock_price(security,
     yield: pd.DataFrame
 
     """
-    for trade in tqdm_notebook(periods, desc='获取收盘价数据'):
-        yield get_price(security,
+    for trade in tqdm_notebook(periods, desc='获取价格数据'):
+        stock_pool_func = StocksPool(symbol, trade)
+        stock_pool_func.filter_paused(22, 21)  # 过滤22日停牌超过21日的股票
+        stock_pool_func.filter_st()  # 过滤st
+        stock_pool_func.filter_ipodate(180)  # 过滤次新
+        if filter_industry:  # 是否过滤行业
+            stock_pool_func.filter_industry(filter_industry)
+
+        yield get_price(stock_pool_func.securities,
                         end_date=trade,
                         count=1,
                         fields=fields,
@@ -93,8 +103,9 @@ def get_stock_price(security,
 
 
 # 获取股票池的区间收盘价数据
-def get_pool_period_price(securities,
+def get_pool_period_price(symbol,
                           periods,
+                          filter_industry,
                           fields
                           ):
     """
@@ -102,10 +113,12 @@ def get_pool_period_price(securities,
 
     Parameters
     ----------
-    securities : List
+    symbol : Str
         股票代码
     periods : List
         时间区间
+    filter_industry :  List
+        过滤行业的代码
     fields : Str
         价格类型，如 open, close
 
@@ -114,7 +127,7 @@ def get_pool_period_price(securities,
      : pd.DataFrame
 
     """
-    prices_list = list(get_stock_price(securities, periods, fields))
+    prices_list = list(get_stock_price(symbol, periods, filter_industry, fields))
     price_df: pd.DataFrame = pd.concat(prices_list)
     return price_df
 
@@ -278,7 +291,7 @@ class StocksPool(object):
         method : str
         """
         ind = get_stock_ind(self.securities, self.watch_date, level, method)
-        target = ind.to_frame('industry').query('industry != @industry')
+        target = ind.to_frame('industry').query(f"industry != {industry}")
         self.securities = target.index.tolist()
 
 
