@@ -72,13 +72,13 @@ def get_stock_price(symbol,
 
     Parameters
     -----------
-    symbol: Str
+    symbol: str
         股票代码
     periods: List
         时间区间
     filter_industry :  List
         过滤行业的代码
-    fields : Str
+    fields : str
         价格类型，如 open, close
 
     Returns
@@ -113,13 +113,13 @@ def get_pool_period_price(symbol,
 
     Parameters
     ----------
-    symbol : Str
+    symbol : str
         股票代码
     periods : List
         时间区间
     filter_industry :  List
         过滤行业的代码
-    fields : Str
+    fields : str
         价格类型，如 open, close
 
     Returns
@@ -718,7 +718,7 @@ color_map = ['red', 'green', 'cyan', 'magenta', 'blue']
 # 绘制各分组的累计收益统计图
 def plot_cum_return(title,
                     ret,
-                    benchmark_ret,
+                    benchmark_code,
                     benchmark_name
                     ):
     """
@@ -730,7 +730,7 @@ def plot_cum_return(title,
         图表标题
     ret : pd.DataFrame
         分组的收益率 df 格式文件
-    benchmark_ret : pd.DataFrame
+    benchmark_code : str
         基准的收益率 df 格式文件
     benchmark_name : str
         基准名称
@@ -744,8 +744,9 @@ def plot_cum_return(title,
     fig, ax = plt.subplots(figsize=(26, 6))
     ax.set_title(title)
     ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, pos: '%.2f%%' % (x * 100)))
-    if not benchmark_ret.empty:
+    if benchmark_code:
         # ep.cum_returns(benchmark_ret.reindex(ret.index)).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
+        benchmark_ret = get_price(benchmark_code, ret.index[0], ret.index[-1], fields='close')['close'].pct_change()
         ep.cum_returns(ret.reindex(benchmark_ret.index)).plot(ax=ax, color=color_map)
         ep.cum_returns(benchmark_ret).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
     else:
