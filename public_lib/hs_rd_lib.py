@@ -346,7 +346,7 @@ def get_benchmark_return(benchmark='000300.XSHG',
 
 def strategy_performance(return_df,
                          periods='daily',
-                         benchmark=None
+                         benchmark_code=None
                          ):
     """
     计算风险指标 默认为年化数据
@@ -357,35 +357,46 @@ def strategy_performance(return_df,
         策略的日回报，非累积
     periods : str
         定义收益数据的周期性以计算年化，{‘monthly’:12, ’weekly’:52, ’daily’:252}
-    benchmark : str
-        基准收益率
+    benchmark_code : str
+        基准代码
 
     Returns
     -------
-    ser : pd.DataFrame
+    sp_df : pd.DataFrame
 
     """
-    ser: pd.DataFrame = pd.DataFrame()
-    ser['年化收益率'] = ep.annual_return(return_df, period=periods)
-    ser['累计收益'] = ep.cum_returns(return_df).iloc[-1]
+    if benchmark_code is not None:
+        benchmark_ret = get_price(benchmark_code, return_df.index[0], return_df.index[-1], fields='close')
+        benchmark_ret.reset_index(inplace=True)
+        benchmark_ret.rename(columns={'index': 'date', 'close': 'benchmark'}, inplace=True)
+        return_df.reset_index(inplace=True)
+        return_df = return_df.merge(benchmark_ret, on=['date'], how='left')
+        return_df['benchmark'] = return_df['benchmark'].pct_change().fillna(0)
+        return_df = return_df.set_index('date')
 
-    ser['夏普比'] = ep.sharpe_ratio(return_df, risk_free=0, period=periods, annualization=None)
-    ser['索提诺'] = ep.sortino_ratio(return_df, required_return=0, period=periods, annualization=None, _downside_risk=None)
-    # ser['卡玛比率'] = ep.calmar_ratio(return_df, period=periods, annualization=None)
-    # ser['欧米加比率'] = ep.omega_ratio(return_df, risk_free=0.0, required_return=0.0, annualization=252)
+    col = return_df.columns.tolist()
+    sp_df: pd.DataFrame = pd.DataFrame()
+    for i in range(len(col)):
+        sp = dict()
+        sp['年化收益率'] = str(np.round(ep.annual_return(return_df.iloc[:, i], period=periods) * 100, 2)) + '%'
+        sp['累计收益'] = str(np.round(ep.cum_returns(return_df.iloc[:, i]).iloc[-1] * 100, 2)) + '%'
 
-    ser['波动率'] = return_df.apply(lambda x: ep.annual_volatility(x, period=periods))
-    # ser['最大回撤'] = return_df.apply(lambda x: ep.max_drawdown(x))
-    ser['最大回撤'] = ep.max_drawdown(return_df)
+        sp['夏普比'] = np.round(ep.sharpe_ratio(return_df.iloc[:, i], risk_free=0, period=periods, annualization=None), 3)
+        sp['索提诺'] = np.round(ep.sortino_ratio(return_df.iloc[:, i], required_return=0, period=periods, annualization=None, _downside_risk=None), 3)
+        sp['卡玛比率'] = np.round(ep.calmar_ratio(return_df.iloc[:, i], period=periods, annualization=None), 3)
+        sp['欧米加比率'] = np.round(ep.omega_ratio(return_df.iloc[:, i], risk_free=0.0, required_return=0.0, annualization=252), 3)
 
-    if benchmark is not None:
-        select_col = [col for col in return_df.columns if col != benchmark]
-        ser['IR'] = return_df[select_col].apply(lambda x: information_ratio(x, return_df[benchmark]))
-        ser['Alpha'] = return_df[select_col].apply(lambda x: ep.alpha(x, return_df[benchmark], period=periods))
-        ser['超额收益'] = ser['年化收益率'] - ser.loc[benchmark, '年化收益率']  # 计算相对年化波动率
+        sp['波动率'] = str(np.round(ep.annual_volatility(return_df.iloc[:, i], period=periods) * 100, 2)) + '%'
+        sp['最大回撤'] = str(np.round(ep.max_drawdown(return_df.iloc[:, i]) * 100, 2)) + '%'
 
-    ser = ser.T
-    return ser
+        if benchmark_code is not None:
+            sp['IR'] = np.round(information_ratio(return_df.iloc[:, i], return_df['benchmark']), 3)
+            if col[i] == 'benchmark':
+                sp['IR'] = 0
+            sp['Alpha'] = np.round(ep.alpha(return_df.iloc[:, i], return_df['benchmark'], period=periods), 3)
+
+        sp_df = pd.concat([sp_df, pd.DataFrame(sp, index=[col[i]])])
+    return sp_df
 
 
 def information_ratio(returns,
@@ -717,7 +728,7 @@ color_map = ['red', 'green', 'cyan', 'magenta', 'blue']
 
 # 绘制各分组的累计收益统计图
 def plot_cum_return(title,
-                    ret,
+                    return_df,
                     benchmark_code,
                     benchmark_name
                     ):
@@ -728,7 +739,7 @@ def plot_cum_return(title,
     ----------
     title : str
         图表标题
-    ret : pd.DataFrame
+    return_df : pd.DataFrame
         分组的收益率 df 格式文件
     benchmark_code : str
         基准的收益率 df 格式文件
@@ -745,12 +756,13 @@ def plot_cum_return(title,
     ax.set_title(title)
     ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, pos: '%.2f%%' % (x * 100)))
     if benchmark_code:
-        # ep.cum_returns(benchmark_ret.reindex(ret.index)).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
-        benchmark_ret = get_price(benchmark_code, ret.index[0], ret.index[-1], fields='close')['close'].pct_change()
-        ep.cum_returns(ret.reindex(benchmark_ret.index)).plot(ax=ax, color=color_map)
-        ep.cum_returns(benchmark_ret).plot(ax=ax, label=benchmark_name, color='darkgray', ls='--')
-    else:
-        ep.cum_returns(ret).plot(ax=ax, color=color_map)
+        benchmark_ret = pd.DataFrame(get_price(benchmark_code, return_df.index[0], return_df.index[-1], fields='close'))
+        benchmark_ret.reset_index(inplace=True)
+        benchmark_ret.rename(columns={'index': 'date', 'close': benchmark_name}, inplace=True)
+        return_df = return_df.merge(benchmark_ret, on=['date'], how='left')
+        return_df[benchmark_name] = return_df[benchmark_name].pct_change().fillna(0)
+        return_df = return_df.set_index('date')
+    ep.cum_returns(return_df).plot(ax=ax, color=color_map)
     ax.axhline(0, color='black', lw=1)
     plt.legend()
 
