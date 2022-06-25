@@ -15,8 +15,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm_notebook
-from jqdata import *
-from jqfactor import calc_factors, Factor, analyze_factor
+# from jqdata import *
+# from jqfactor import calc_factors, Factor, analyze_factor
 from typing import (List, Tuple, Dict, Callable, Union)
 
 """
@@ -29,7 +29,7 @@ from typing import (List, Tuple, Dict, Callable, Union)
 # 获取行业
 def get_stock_ind(securities,
                   watch_date,
-                  level='sw_l1',
+                  level='jq_l1',
                   method='industry_code'
                   ):
     """
@@ -281,7 +281,7 @@ class StocksPool(object):
         self.securities = [code for code in self.securities if _check_ipodate(code, self.watch_date)]
 
     # 过滤行业
-    def filter_industry(self, industry=None, level='sw_l1', method='industry_name'):
+    def filter_industry(self, industry=None, level='jq_l1', method='industry_code'):
         """
 
         Parameters
@@ -566,7 +566,7 @@ def get_factor(symbol,
         stock_pool_func.filter_paused(22, 21)  # 过滤22日停牌超过21日的股票
         stock_pool_func.filter_st()  # 过滤st
         stock_pool_func.filter_ipodate(180)  # 过滤次新
-        if filter_industry:  # 是否过滤行业
+        if filter_industry is not None:  # 是否过滤行业
             stock_pool_func.filter_industry(filter_industry)
 
         my_factor = factor()
